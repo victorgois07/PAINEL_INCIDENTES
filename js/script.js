@@ -2,71 +2,63 @@ $('[data-toggle="popover"]').popover({
     trigger: 'toggle'
 });
 
-$(".aOpcao").on("click", function () {
-    var valorID = $(this).attr('id');
-    var separar = valorID.split("*");
-
-    if(separar[1] != ""){
-        var inc = separar[1].split("|");
-        var info = separar[0].split("_");
-
-        var html;
-        var grupoEmpresa = info[0].replace(" & "," - ");
-
-        $.ajax({
-            type: "POST",
-            url: "funcao/funcaoBuscaChamado.php",
-            data: {0: inc},
-            success: function (data) {
-                $("#ajaxReturn").html(data);
-                $("#myModal").modal("show");
-                if (info[2] == "NOPRAZO") {
-                    $("#h4ModalTitulo").html("<blockquote class='blockquote text-center'>" +
-                        "<p class='mb-0'>GRUPO DESIGNADO <strong>- "+grupoEmpresa+"</strong></p>" +
-                        "<footer class='blockquote-footer'> Prioridade "+info[1]+" - "+
-                        "<cite title='Source Title'> incidente dentro do Prazo</cite>" +
-                        "</footer>" +
-                        "</blockquote>");
-                }else{
-                    $("#h4ModalTitulo").html("<blockquote class='blockquote text-center'>" +
-                        "<p class='mb-0'>GRUPO DESIGNADO <strong>- "+grupoEmpresa+"</strong></p>" +
-                        "<footer class='blockquote-footer'> Prioridade "+info[1]+" - "+
-                        "<cite class='citeVencido' title='Source Title'> incidente Vencido</cite>" +
-                        "</footer>" +
-                        "</blockquote>");
-                }
-            },
-            error: function () {
-                alert("AJAX - ERRO");
-            }
-        });
-    }
-});
-
 $(document).ready(function () {
-    $("#tablePainelIncidente").DataTable({
-        "paging":   false,
-        "info":     false,
-        "searching": false,
-        "processing": true,
-        "serverSide": true
+    $.ajax({
+        'url': "http://localhost/PAINEL_INCIDENTES/tbody.php",
+        'method': "GET",
+        'contentType': 'application/json'
+    }).done( function(data) {
+        $('#tablePainelIncidente').dataTable( {
+            "aaData": data,
+            "paging":   false,
+            "info":     false,
+            "searching": false
+        });
+        $("#loader").delay(2000).fadeOut("slow");
+
+        var qtd = $("tbody tr").length;
+        var dado = new Array();
+        var comando = new Array();
+
+        for(var i=1; i <= qtd; i++){
+            dado.push($("tbody tr:nth-child("+i+") td:first-child").text());
+            comando.push("tbody tr:nth-child("+i+") td:first-child");
+        }
+
+        var obj = {};
+        var k=1;
+
+        for(var i=0; i< dado.length; i++){
+            for(var j=0; j < dado.length; j++){
+                if(dado[i] == dado[j]){
+                    obj[dado[i]] = k;
+                    k++;
+                }
+            }
+            k=1;
+        }
+
+        var key = new Array();
+
+        for(var prop in obj){
+            key.push(obj[prop]);
+        }
+
+        m=0;
+        n=0;
+
+        for(var i=0; i < qtd; i++){
+            if(i == m){
+                $(comando[i]).attr({
+                    rowspan: key[n]
+                }).wrapInner("<span class='vertTD'></span>");
+
+                m += key[n];
+                n++;
+            }else{
+                $(comando[i]).remove();
+            }
+        }
+
     });
-    $("#tableModalInfo").DataTable({
-        paging: false,
-        info: false,
-        searching: false,
-        autoWidth: false,
-        bAutoWidth: false,
-        "columnDefs": [
-            {"className": "dt-center", "targets": "_all"}
-        ]
-    });
-});
-
-
-
-// Este evendo é acionado após o carregamento da página
-jQuery(window).ready(function() {
-    //Após a leitura da pagina o evento fadeOut do loader é acionado, esta com delay para ser perceptivo em ambiente fora do servidor.
-    jQuery("#loader").delay(2000).fadeOut("slow");
 });

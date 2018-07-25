@@ -44,7 +44,7 @@ class Dao extends ConectBD {
 
             ob_end_clean();
 
-            exit("ERRO: ".$e->getMessage()."<br/>LINHA: ".$e->getLine()."<br/>CODE: ".$e->getCode()."<br/>ARQUIVO: ".$e->getFile()."<br/>COMANDO: ".$rawQuery);
+            exit("ERRO: ".$e->getMessage()."<br/>LINHA: ".$e->getLine()."<br/>CODE: ".$e->getCode()."<br/>ARQUIVO: ".$e->getFile()."<br/>COMANDO: ".$rawQuery."<br/>DATA: ".$params);
 
         }
 
@@ -57,7 +57,7 @@ class Dao extends ConectBD {
         return $stmt->fetchAll(PDO::FETCH_NUM);
     }
 
-    protected function insert($rawQuery, $params = array()):bool {
+    protected function insert($rawQuery, $params = null):bool {
 
         try {
 
@@ -69,9 +69,9 @@ class Dao extends ConectBD {
 
                 $this->setParams($stmt, $params);
 
-            }elseif(is_string($params)) {
+            }else{
 
-                $this->setParam($stmt, 1, $params);
+                $this->setParam($stmt, 0, $params);
 
             }
 
@@ -85,7 +85,9 @@ class Dao extends ConectBD {
 
             ob_end_clean();
 
-            exit("ERRO: ".$e->getMessage()."<br/>LINHA: ".$e->getLine()."<br/>CODE: ".$e->getCode()."<br/>ARQUIVO: ".$e->getFile()."<br/>COMANDO: ".$rawQuery);
+            $comma_separated = implode(",", $params);
+
+            exit("ERRO: ".$e->getMessage()."<br/>LINHA: ".$e->getLine()."<br/>CODE: ".$e->getCode()."<br/>ARQUIVO: ".$e->getFile()."<br/>COMANDO: ".$rawQuery."<br/>DATA: ".$comma_separated);
 
         }
 
@@ -94,43 +96,6 @@ class Dao extends ConectBD {
     protected function firstColumn($table):string{
         $dado = $this->select("DESC $table");
         return $dado[0][0];
-    }
-
-    protected function jailNumberId($table){
-
-        $col = $this->firstColumn($table);
-
-        $jail = $this->select("SELECT COUNT($col) FROM $table");
-
-        if (!empty($jail[0][0])) {
-
-            for($i=1; $i < $jail[0][0]; $i++){
-
-                if($this->dataExist("SELECT * FROM $table WHERE $col = ?",strval($i)) == false){
-
-                    $num = $i;
-
-                    break;
-
-                }
-
-            }
-
-            return $num;
-
-        } else {
-
-            return null;
-
-        }
-    }
-
-    protected function idValueReturn($table,$column,$val){
-        $col = $this->firstColumn($table);
-        $jail = $this->select("SELECT $col FROM $table WHERE $column = ?",strval($val));
-        if (isset($jail[0][0])) {
-            return $jail[0][0];
-        }
     }
 
     protected function dataExist($rawQuery, $params = array()):bool {
@@ -149,6 +114,27 @@ class Dao extends ConectBD {
 
     }
 
+    protected function jailNumberId($table){
+
+        $col = $this->firstColumn($table);
+
+        $jail = $this->select("SELECT a.$col - 1 AS livre FROM $table AS a LEFT JOIN $table AS b ON a.$col - 1 = b.$col WHERE b.$col IS NULL AND a.$col > 1;");
+
+        if(empty($jail)){
+            return null;
+        }else{
+            return $jail[0][0];
+        }
+    }
+
+    protected function idValueReturn($table,$column,$val){
+        $col = $this->firstColumn($table);
+        $jail = $this->select("SELECT $col FROM $table WHERE $column = ?",strval($val));
+        if (isset($jail[0][0])) {
+            return $jail[0][0];
+        }
+    }
+
     protected function insertDataNotExist($table,$col,$data,$data2 = null){
 
         try {
@@ -162,7 +148,7 @@ class Dao extends ConectBD {
 
                 } else {
 
-                    $this->insert("INSERT INTO $table VALUES (?)", $data);
+                    $this->insert("INSERT INTO $table VALUES (?,?)", array($this->jailNumberId($table),$data));
 
                     return $this->idValueReturn($table, $col, $data);
 
@@ -203,12 +189,14 @@ class Dao extends ConectBD {
 
     }
 
-    protected function arrangingArrayDB($array){
+    protected function arrangingArrayDB($array):array {
         foreach ($array as $v){
             $p[] = $v[0];
         }
 
-        return $p;
+        if (isset($p)) {
+            return $p;
+        }
     }
 
     protected function dataTimeFormatInsertDB($data):array {
@@ -217,7 +205,9 @@ class Dao extends ConectBD {
             $d[] = \DateTime::createFromFormat('d/m/Y H:i:s', $dt)->format('Y-m-d h:i:s');
         }
 
-        return $d;
+        if (isset($d)) {
+            return $d;
+        }
 
     }
 

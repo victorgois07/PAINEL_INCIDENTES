@@ -13,160 +13,113 @@ class ReadBD extends Dao {
         return $incidente;
     }
 
-    public function col_grupo_empresa(){
-        $empresa = $this->getObj()->empresa;
-        $grupo = array_unique($this->getObj()->grupo);
-        $key_grupo = array_keys($grupo);
-
-
-        foreach ($key_grupo as $k => $g){
-            $emp[] = $empresa[$g];
-            $ex = explode(" ",$empresa[$g]);
-
-            if($ex[0] == "B2BR"){
-                $resul[] = $grupo[$g]." * +2X";
-            }else{
-                $resul[] = $grupo[$g]." * ".$ex[0];
-            }
-        }
-
-        if (isset($resul)) {
-            return $resul;
-        }
+    protected function totalOcorrencia(DateTime $now):int{
+        $where = $now->format("Y-m-")."%";
+        $tot = $this->select("SELECT COUNT(*) FROM tb_ocorrencia WHERE resolucao LIKE ?",$where);
+        return $tot[0][0];
     }
 
-    private function calcutoArrayIncidente($var){
-        foreach ($var as $v){
-            $sql = $this->conectBD()->prepare("SELECT `criado`,`resolucao` FROM `tb_ocorrencia` WHERE `incidente` = '{$v}'");
-            if($sql->execute()){
-                $d = $sql->fetchAll(\PDO::FETCH_NUM);
-                $result[$v] = $d[0];
-            }else{
-                return $sql->errorInfo();
-            }
-        }
+    protected function colFirst(DateTime $now):array {
+        $where = $now->format("Y-m-")."%";
 
-        if (isset($result)) {
-            foreach ($result as $k => $r){
-                $comando = $this->conectBD()->prepare("SELECT TIMESTAMPDIFF(SECOND,'{$r[0]}','{$r[1]}')");
-                if($comando->execute()){
-                    $f = $comando->fetchAll(\PDO::FETCH_NUM);
-                    $dado[$k] = intval($f[0][0]);
-                }else{
-                    return $comando->errorInfo();
-                }
-            }
-        }
+        $grupoMesAno = $this->select("SELECT COUNT(o.incidente) as quantidade, tgd.grupo, empresa.descricao FROM tb_ocorrencia o INNER JOIN tb_grupo_designado tgd on o.fk_grupo_designado = tgd.id_grupo_designado INNER JOIN tb_empresa empresa on tgd.fk_empresa = empresa.id_empresa INNER JOIN tb_prioridade tp on o.fk_prioridade = tp.id_prioridade WHERE o.resolucao LIKE ? GROUP BY tgd.grupo ORDER BY empresa.descricao",$where);
 
-        if(isset($dado)){
-            return $dado;
-        }
+        return $grupoMesAno;
     }
 
-    public function incidentesPrioridadeGrupo($prioridade,$grupo){
-        $date = new DateTime("now");
-        $sql = $this->conectBD()->query("SELECT `tb_ocorrencia`.`incidente` FROM `tb_ocorrencia` INNER JOIN `tb_prioridade` ON `tb_ocorrencia`.`fk_prioridade` = `tb_prioridade`.`id_prioridade` INNER JOIN `tb_grupo_designado` ON `tb_ocorrencia`.`fk_grupo_designado` = `tb_grupo_designado`.`id_grupo_designado` WHERE (`tb_prioridade`.`pri_descricao` = '{$prioridade}') AND (`tb_grupo_designado`.`grupo` = '{$grupo}') AND (MONTH(`tb_ocorrencia`.`criado`) = '{$date->format("m")}')");
+    protected function firstColGet(DateTime $now):array {
 
-        if($sql->execute()){
+        $first = $this->colFirst($now);
 
-            foreach ($sql->fetchAll(\PDO::FETCH_NUM) as $dado){
-                $result[] = $dado[0];
-            }
-
-            if (isset($result)) {
-                return $this->calcutoArrayIncidente($result);
-            }
-        }else{
-            return $sql->errorInfo();
+        foreach ($first as $f){
+            $empresa[] = $f[2];
+            $grupo[] = $f[1];
         }
-    }
-    
-    public function totalIncidente(){
-        $date = new DateTime("now");
-        $sql = $this->conectBD()->prepare("SELECT `tb_ocorrencia`.`incidente` FROM `tb_ocorrencia` WHERE MONTH(`criado`) = '{$date->format("m")}'");
-        if($sql->execute()){
-            return $sql->rowCount();
-        }else{
-            return $sql->errorInfo();
-        }
+
+        return array($empresa,$grupo);
     }
 
-    public function incidenteGrupoNoPrazoVencido($var,$prioridade,$tipo){
-        foreach ((array) $var as $k => $v){
-            switch ($prioridade){
-                case "Baixo":
-                    if($v <= 28800){
-                        $prazo[] = $k;
-                    }else{
-                        $vencido[] = $k;
-                    }
-                    break;
+    protected function colData(DateTime $now, String $prioridade, int $second):array {
 
-                case "Média":
-                    if($v <= 21600){
-                        $prazo[] = $k;
-                    }else{
-                        $vencido[] = $k;
-                    }
-                    break;
+        $first = $this->firstColGet($now);
 
-                case "Alto":
-                    if($v <= 14400){
-                        $prazo[] = $k;
-                    }else{
-                        $vencido[] = $k;
-                    }
-                    break;
+        $empresa = $first[0];
+        $grupo = $first[1];
 
-                case "Crítico":
-                    if($v <= 7200){
-                        $prazo[] = $k;
-                    }else{
-                        $vencido[] = $k;
-                    }
-                    break;
+        $data = $this->colsDataDB($now,$prioridade,$second);
+
+
+        for($i=0; $i<count($empresa); $i++){
+            $vencido[$i] = 0;
+        }
+
+        foreach ($data[0] as $ba){
+            if(in_array($ba[1],$grupo) && in_array($ba[2], $empresa)){
+                $vencido[array_search($ba[1],$grupo)] =  $ba[0];
             }
         }
-        
-        if($tipo == "VENCIDO"){
-            if (isset($vencido)) {
-                return $vencido;
-            }
-        }else{
-            if(isset($prazo)){
-                return $prazo;
+
+        for($i=0; $i<count($empresa); $i++){
+            $prazo[$i] = 0;
+        }
+
+        foreach ($data[1] as $ba){
+            if(in_array($ba[1],$grupo) && in_array($ba[2], $empresa)){
+                $prazo[array_search($ba[1],$grupo)] =  $ba[0];
             }
         }
+
+        return array($prazo,$vencido);
+
     }
 
-    public function todosIncidentes(){
-        $date = new DateTime("now");
-        $sql = $this->conectBD()->prepare("SELECT `incidente` FROM `tb_ocorrencia` WHERE MONTH(`criado`) = '{$date->format("m")}' ORDER BY `incidente` ASC");
 
-        if($sql->execute()){
-            foreach ($sql->fetchAll(\PDO::FETCH_NUM) as $k => $var){
-                $dado[] = $var[0];
-            }
+    protected function colsDataDB(DateTime $now, String $prioridade, int $second){
+        $where = $now->format("Y-m-")."%";
 
-            if(isset($dado)) {
-                $incidente = $this->getObj()->incidente;
+        $vencido = $this->select("SELECT COUNT(o.incidente) as quantidade, tgd.grupo, empresa.descricao FROM tb_ocorrencia o INNER JOIN tb_grupo_designado tgd on o.fk_grupo_designado = tgd.id_grupo_designado INNER JOIN tb_empresa empresa on tgd.fk_empresa = empresa.id_empresa INNER JOIN tb_prioridade tp on o.fk_prioridade = tp.id_prioridade WHERE o.resolucao LIKE ? AND tp.pri_descricao = ? AND TIMESTAMPDIFF(SECOND, o.criado,o.resolucao) > ? GROUP BY tgd.grupo ORDER BY empresa.descricao", array($where,$prioridade,$second));
 
-                $diff = array_diff($incidente,$dado);
+        $noPrazo = $this->select("SELECT COUNT(o.incidente) as quantidade, tgd.grupo, empresa.descricao FROM tb_ocorrencia o INNER JOIN tb_grupo_designado tgd on o.fk_grupo_designado = tgd.id_grupo_designado INNER JOIN tb_empresa empresa on tgd.fk_empresa = empresa.id_empresa INNER JOIN tb_prioridade tp on o.fk_prioridade = tp.id_prioridade WHERE o.resolucao LIKE ? AND tp.pri_descricao = ? AND TIMESTAMPDIFF(SECOND, o.criado,o.resolucao) <= ? GROUP BY tgd.grupo ORDER BY empresa.descricao", array($where,$prioridade,$second));
 
-                return $diff;
-            }
-        }else{
-            return $sql->errorInfo();
+        return array($vencido,$noPrazo);
+
+    }
+
+
+    public function finalColData(DateTime $now):array{
+        $first = $this->firstColGet($now);
+        $empresa = $first[0];
+        $grupo = $first[1];
+        $baixo = $this->colData(new DateTime('now'),"Baixo",28800);
+        $media = $this->colData(new DateTime('now'),"Média",21600);
+        $alto = $this->colData(new DateTime('now'),"Alto",14400);
+        $critico = $this->colData(new DateTime('now'),"Crítico",7200);
+
+        $totalVencido = 0;
+        $totalPrazo = 0;
+
+        foreach ($empresa as $key => $emp){
+            $values[] = array(
+                $emp,
+                strtoupper($grupo[$key]),
+                $baixo[0][$key],
+                $baixo[1][$key],
+                $media[0][$key],
+                $media[1][$key],
+                $alto[0][$key],
+                $alto[1][$key],
+                $critico[0][$key],
+                $critico[1][$key],
+                ($baixo[0][$key]+$media[0][$key]+$alto[0][$key]+$critico[0][$key]),
+                ($baixo[1][$key]+$media[1][$key]+$alto[1][$key]+$critico[1][$key]),
+                round((($baixo[0][$key]+$media[0][$key]+$alto[0][$key]+$critico[0][$key]) / (($baixo[0][$key]+$media[0][$key]+$alto[0][$key]+$critico[0][$key])+($baixo[1][$key]+$media[1][$key]+$alto[1][$key]+$critico[1][$key]))) * 100)."%",
+                round((($baixo[1][$key]+$media[1][$key]+$alto[1][$key]+$critico[1][$key]) / (($baixo[0][$key]+$media[0][$key]+$alto[0][$key]+$critico[0][$key])+($baixo[1][$key]+$media[1][$key]+$alto[1][$key]+$critico[1][$key]))) * 100)."%"
+                );
         }
+
+        return $values;
     }
 
-    public function getObj(){
-        return $this->obj;
-    }
-    
-    public function setObj($obj){
-        $this->obj = $obj;
-    }
 }
 
 ?>

@@ -89,13 +89,6 @@ a.btn.btn-danger:hover, a.btn.btn-primary:hover{
     color: #fff;
 }
 
-/* COL 1 */
-
-tbody tr th:nth-child(1), tfoot tr th:nth-child(1){
-    font-size: 14px;
-    text-transform: uppercase;
-    text-indent: 10px;
-}
 
 /* TFOOT */
 
@@ -168,11 +161,6 @@ div#loader{
     padding: 0 10px;
 }
 
-#tableModalInfo tbody tr th:nth-child(1) {
-    font-size: 12px;
-    text-indent: 0;
-}
-
 #tableModalInfo thead tr{
     background-color: darkblue;
     font-weight: 700;
@@ -180,26 +168,14 @@ div#loader{
     text-align: center;
 }
 
-#tableModalInfo tr th{
-    border: 1px solid #000 !important;
-}
-
-#tableModalInfo tr th:nth-child(1){
-    width: 150px;
-}
-
-#tableModalInfo tr th:nth-child(2),#tableModalInfo tr th:nth-child(3){
-    width: 125px
-}
-
-#tableModalInfo tr th:nth-child(4),#tableModalInfo tr th:nth-child(5){
-    width: 170px
-}
-
-.ui-cell-editor-input {
+td.sorting_1 {
     text-align: center;
+    justify-content: center;
+    align-items: center;
+    padding: 0 !important;
 }
 
-a.btn.btn-danger, a.btn.btn-primary{
-    cursor: pointer;
+.vertTD{
+    writing-mode: vertical-rl;
+    -webkit-writing-mode: vertical-rl;
 }
