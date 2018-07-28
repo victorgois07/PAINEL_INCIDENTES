@@ -8,6 +8,28 @@ class ManipulacaoDados{
         echo "</pre>";
     }
 
+    public function inputModalData($id,$col,$collabel,$colInput,$value,$name){
+        return "<div class='$col'>
+                   <div class='row'>
+                       <label for='$id' class='$collabel col-form-label'>$name</label>
+                       <div class='$colInput'>
+                            <input type='text' class='form-control' id='$id' value='$value' readonly>
+                       </div>
+                    </div>
+               </div>";
+    }
+
+    public function textareaModalData($id,$col,$collabel,$colInput,$value,$name){
+        return "<div class='$col'>
+                   <div class='row'>
+                       <label for='$id' class='$collabel col-form-label'>$name</label>
+                       <div class='$colInput'>
+                            <textarea id='$id' name='$id' class='form-control' cols='30' rows='7' readonly>$value</textarea>
+                        </div>
+                   </div>
+                </div>";
+    }
+
     
     public function htmlModal($array, $id){
         $modalHeader = "<div class='modal fade' id='$id' tabindex='-1' role='dialog' aria-labelledby='exampleModalLongTitle' aria-hidden='true'>

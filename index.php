@@ -21,11 +21,12 @@
     <link rel="stylesheet" href="<?= LINK ?>lib/DataTables/css/dataTables.bootstrap4.min.css">
     <link rel="stylesheet" href="<?= LINK ?>lib/font-awesome/web-fonts-with-css/css/fontawesome-all.min.css">
     <link rel="stylesheet" href="<?= LINK ?>lib/jqueryconfirm/jquery-confirm.min.css">
+    <link rel="stylesheet" href="<?= LINK ?>lib/jquery-ui/jquery-ui.min.css">
     <link rel="stylesheet" href="<?= LINK ?>css/estilo.css">
 </head>
 
 
-<body onload="setInterval(function() { window.location.reload('true')},600000)">
+<body>
 
     <div id="loader"></div>
 
@@ -40,8 +41,6 @@
                     <td COLSPAN="14">
 
                         <h2><?= $titulo ?></h2>
-
-                        <button id="buttonReadBaseAtual" class="btn btn-outline-success"> UPDATE</button>
 
                     </td>
 
@@ -94,6 +93,16 @@
 
         </table>
 
+        <!-- Modal -->
+        <div class="modal fade" id="modalDataPainel" tabindex="-1" role="dialog" aria-labelledby="modalDataPainelTitle" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered" role="document">
+                <div class="modal-content">
+                    <img id="imgModalClose" src="img/error.png" data-dismiss="modal" alt="">
+                    <div class="modal-body"></div>
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <script src="https://code.jquery.com/jquery-3.3.1.js"></script>
@@ -102,6 +111,7 @@
     <script src="<?= LINK ?>lib/DataTables/js/jquery.dataTables.min.js"></script>
     <script src="<?= LINK ?>lib/DataTables/js/dataTables.bootstrap4.min.js"></script>
     <script src="<?= LINK ?>lib/jqueryconfirm/jquery-confirm.min.js"></script>
+    <script src="<?= LINK ?>lib/jquery-ui/jquery-ui.min.js"></script>
     <script type="text/javascript" src="<?= LINK ?>js/script.js"></script>
 </body>
 </html>
